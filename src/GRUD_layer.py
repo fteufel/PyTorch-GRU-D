@@ -8,7 +8,9 @@ import itertools
 import numbers
 import torch.utils.data as utils
 
-#make it stackable - means i need to return the sequences, not the activation on the last hidden
+#
+#The convention for RNNs is that the feature dimension is last - adapt for that. also need to adapt input tensors in the run file.
+#
 
 class GRUD_cell(torch.nn.Module):
     """
@@ -163,8 +165,8 @@ class GRUD_cell(torch.nn.Module):
         x_last_obsv = getattr(self, 'X_last_obs')
         
 
-        output_tensor = torch.empty([X.size()[0], self.output_size, X.size()[2]], dtype=X.dtype)
-        hidden_tensor = torch.empty(X.size()[0], self.hidden_size, X.size()[2], dtype=X.dtype)
+        output_tensor = torch.empty([X.size()[0], X.size()[2], self.output_size], dtype=X.dtype)
+        hidden_tensor = torch.empty(X.size()[0], X.size()[2], self.hidden_size, dtype=X.dtype)
         #iterate over seq
         for timestep in range(X.size()[2]):
             
@@ -266,13 +268,13 @@ class GRUD_cell(torch.nn.Module):
 
             step_output = self.w_hy(h)
             step_output = torch.sigmoid(step_output)
-            output_tensor[:,:,timestep] = step_output
-            hidden_tensor[:,:,timestep] = h
+            output_tensor[:,timestep,:] = step_output
+            hidden_tensor[:,timestep,:] = h
             
-        if self.return_hidden:
+        #if self.return_hidden:
             #when i want to stack GRU-Ds, need to put the tensor back together
             #output = torch.stack([hidden_tensor,Mask,Delta], dim=1)
-            output = hidden_tensor
-        else:
-            output = output_tensor
+        output = output_tensor, hidden_tensor
+        #else:
+        #    output = output_tensor
         return output
