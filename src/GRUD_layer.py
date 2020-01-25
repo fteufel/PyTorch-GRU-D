@@ -78,7 +78,13 @@ class GRUD_cell(torch.nn.Module):
         #we use buffers because pytorch will take care of pushing them to GPU for us
         self.register_buffer('Hidden_State', Hidden_State)
         self.register_buffer('X_last_obs', torch.zeros(input_size)) #torch.tensor(x_mean) #TODO: what to initialize last observed values with?, also check broadcasting behaviour
+
+    
+    #TODO: check usefulness of everything below here, just copied skeleton
+
+
         self.reset_parameters()
+        
     
 
 
@@ -148,7 +154,6 @@ class GRUD_cell(torch.nn.Module):
         #X = torch.squeeze(input[0]) # .size = (33,49)
         #Mask = torch.squeeze(input[1]) # .size = (33,49)
         #Delta = torch.squeeze(input[2]) # .size = (33,49)
-        
         X = input[:,0,:,:]
         Mask = input[:,1,:,:]
         Delta = input[:,2,:,:]
@@ -165,8 +170,10 @@ class GRUD_cell(torch.nn.Module):
         x_last_obsv = getattr(self, 'X_last_obs')
         
 
-        output_tensor = torch.empty([X.size()[0], X.size()[2], self.output_size], dtype=X.dtype)
-        hidden_tensor = torch.empty(X.size()[0], X.size()[2], self.hidden_size, dtype=X.dtype)
+        device = next(self.parameters()).device
+        output_tensor = torch.empty([X.size()[0], X.size()[2], self.output_size], dtype=X.dtype, device= device)
+        hidden_tensor = torch.empty(X.size()[0], X.size()[2], self.hidden_size, dtype=X.dtype, device = device)
+
         #iterate over seq
         for timestep in range(X.size()[2]):
             
@@ -243,17 +250,17 @@ class GRUD_cell(torch.nn.Module):
                 recurrent dropout without memory loss arXiv 1603.05118
                 g = h_tilde, p = the probability to not drop a neuron
                 '''
+                h = gamma_h*h
+                z = torch.sigmoid( self.w_xz(x) + self.w_hz(h) + self.w_mz(m))
+                r = torch.sigmoid( self.w_xr(x) + self.w_hr(h) + self.w_mr(m))
 
-                h = gamma_h * h
-
-                z = torch.sigmoid((w_xz*x + w_hz*h + w_mz*m + b_z))
-                r = torch.sigmoid((w_xr*x + w_hr*h + w_mr*m + b_r))
-                h_tilde = torch.tanh((w_xh*x + w_hh*(r * h) + w_mh*m + b_h))
 
                 dropout = torch.nn.Dropout(p=self.dropout)
-                h_tilde = dropout(h_tilde)
+                h_tilde = torch.tanh( self.w_xh(x) + self.w_hh( r*h ) + self.w_mh(m))
 
-                h = (1 - z)* h + z*h_tilde
+
+                h = (1 - z) * h + z * h_tilde
+                #######
 
             else:
                 h = gamma_h * h
@@ -274,6 +281,7 @@ class GRUD_cell(torch.nn.Module):
         #if self.return_hidden:
             #when i want to stack GRU-Ds, need to put the tensor back together
             #output = torch.stack([hidden_tensor,Mask,Delta], dim=1)
+        
         output = output_tensor, hidden_tensor
         #else:
         #    output = output_tensor
