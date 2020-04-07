@@ -1,5 +1,5 @@
 # PyTorch-GRU-D
-PyTorch Implenentation of GRU-D from "Recurrent Neural Networks for Multivariate Time Series with Missing Values" https://arxiv.org/abs/1606.01865
+PyTorch Implementation of GRU-D from "Recurrent Neural Networks for Multivariate Time Series with Missing Values" https://arxiv.org/abs/1606.01865
 
 Code based on
 https://github.com/Han-JD/GRU-D
